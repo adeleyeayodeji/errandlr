@@ -1,0 +1,43 @@
+Array
+(
+    [geoId] => aNa2NlXWR2PgmyQ3iDFKzA==
+    [status] => success
+    [estimate] => 4500
+    [totalDistanceInKm] => 53
+    [routes] => Array
+        (
+            [pickupLocation] => Array
+                (
+                    [id] => SPAR Lekki, Palm Springs Road, Lekki, Nigeria
+                    [label] => SPAR Lekki, Palm Springs Road, Lekki, Nigeria
+                )
+
+            [originAddresses] => Array
+                (
+                    [0] => Palm Springs Rd, Lekki Penninsula II 106104, Lekki, Lagos, Nigeria
+                )
+
+            [mapUrl] => https://www.google.com/maps/dir/?api=1&origin=SPAR%20Lekki%2C%20Palm%20Springs%20Road%2C%20Lekki%2C%20Nigeria&destination=45%20Adenekan%2C%20Alakuko%2C%20Lagos.%2C%20Bwari%2C%20Lagos%2C%20Nigeria&|&travelmode=driving
+            [dropoffLocations] => Array
+                (
+                    [0] => Array
+                        (
+                            [order] => 0
+                            [destination] => Array
+                                (
+                                    [id] => 45 Adenekan, Alakuko, Lagos., Bwari, Lagos, Nigeria
+                                    [label] => 45 Adenekan, Alakuko, Lagos., Bwari, Lagos, Nigeria
+                                )
+
+                            [originDestination] => 45 Adenekan Rd, Alakuko 101232, Ojokoro, Lagos, Nigeria
+                            [distance] => 53
+                            [duration] => 87
+                        )
+
+                )
+
+        )
+
+    [batchEstimate] => 1500
+    [statusCode] => 200
+)
