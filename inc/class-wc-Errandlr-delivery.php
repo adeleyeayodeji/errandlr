@@ -111,7 +111,7 @@ class WC_Errandlr_Delivery
 
         add_filter('woocommerce_shipping_calculator_enable_postcode', '__return_false');
         //enqueue scripts
-        add_action('wp_enqueue_scripts', array($this, 'enqueue_scripts'), 1, 1);
+        add_action('wp_enqueue_scripts', array($this, 'enqueue_scripts'), PHP_INT_MAX, 1);
         //ajax errandlr_validate_checkout
         add_action('wp_ajax_errandlr_validate_checkout', array($this, 'errandlr_validate_checkout'));
         add_action('wp_ajax_nopriv_errandlr_validate_checkout', array($this, 'errandlr_validate_checkout'));
@@ -120,6 +120,9 @@ class WC_Errandlr_Delivery
     //enqueue_scripts
     public function enqueue_scripts()
     {
+        //style
+        wp_enqueue_style('errandlr-delivery-css', plugins_url('assets/css/style.css', WC_ERRAN_DL_MAIN_FILE), array(), time());
+        //enqueue scripts
         wp_enqueue_script('errandlr-delivery-js', plugins_url('assets/js/errandlr.js', WC_ERRAN_DL_MAIN_FILE), array('jquery', 'jquery-blockui'), time(), true);
         wp_localize_script('errandlr-delivery-js', 'errandlr_delivery', array(
             'ajax_url' => admin_url('admin-ajax.php'),
@@ -143,9 +146,9 @@ class WC_Errandlr_Delivery
         $calculate_shipment = $this->calculate_shipment($form_data);
 
         wp_send_json([
-            'status' => 'success',
+            'code' => 200,
             'message' => 'Shipment calculated successfully',
-            'data' => $calculate_shipment
+            'shipment_info' => $calculate_shipment
         ]);
     }
 
@@ -214,6 +217,7 @@ class WC_Errandlr_Delivery
             'errandlr_cost'    => $cost,
             'economy_cost' => $batchEstimate,
             'premium_cost' => $cost,
+            'currency' => get_woocommerce_currency(),
             'routes' => $costData['routes']["mapUrl"],
             'geoId' => $costData["geoId"],
             'dropoffLocationsID' => $costData["routes"]["dropoffLocations"][0]["order"],
