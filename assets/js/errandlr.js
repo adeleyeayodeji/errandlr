@@ -20,6 +20,7 @@ jQuery(document).ready(function ($) {
             message: null,
             overlayCSS: {
               background: "#fff",
+
               opacity: 0.6
             }
           });
