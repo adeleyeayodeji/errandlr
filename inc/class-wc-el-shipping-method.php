@@ -132,14 +132,28 @@ class WC_Errandlr_Delivery_Shipping_Method extends WC_Shipping_Method
             ),
             //add discount amount
             'discount_amount' => array(
-                'title'       =>     __('Discount Amount'),
+                'title'       =>     __('Discount Amount for premium'),
                 'type'        =>     'number',
-                'description' =>     __('Add discount amount to shipping cost'),
+                'description' =>     __('Add discount amount to shipping cost for premium delivery. <br> <b>Note: Adding a discount amount takes precedence over fixed amount.</b>'),
+                'default'     =>     __('0')
+            ),
+            //add discount for economy
+            'discount_amount_economy' => array(
+                'title'       =>     __('Discount Amount for economy'),
+                'type'        =>     'number',
+                'description' =>     __('Add discount amount to shipping cost for economy delivery. <br> <b>Note: Adding a discount amount takes precedence over fixed amount.</b>'),
                 'default'     =>     __('0')
             ),
             //fixed amount
             'fixed_amount' => array(
-                'title'       =>     __('Fixed Amount'),
+                'title'       =>     __('Fixed Amount for premium'),
+                'type'        =>     'number',
+                'description' =>     'Add fixed amount to shipping cost. <br> <b>Note: Adding a fixed shipping cost takes precedence over discount amount.</b>',
+                'default'     =>     __('0')
+            ),
+            //fixed amount
+            'fixed_amount_economy' => array(
+                'title'       =>     __('Fixed Amount for economy'),
                 'type'        =>     'number',
                 'description' =>     'Add fixed amount to shipping cost. <br> <b>Note: Adding a fixed shipping cost takes precedence over discount amount.</b>',
                 'default'     =>     __('0')
@@ -183,7 +197,7 @@ class WC_Errandlr_Delivery_Shipping_Method extends WC_Shipping_Method
         if (isset($_SESSION['errandlr_shipping_info'])) {
             //get session
             $errandlr_shipping_info = $_SESSION['errandlr_shipping_info'];
-            file_put_contents(__DIR__ . '/loggin.txt', print_r($errandlr_shipping_info, true));
+            // file_put_contents(__DIR__ . '/loggin.txt', print_r($errandlr_shipping_info, true));
         } else {
             $errandlr_shipping_info = [];
         }
@@ -226,14 +240,26 @@ class WC_Errandlr_Delivery_Shipping_Method extends WC_Shipping_Method
             } else {
                 $this->title = 'Economy Errandlr Delivery';
             }
-            //add rate
-            $this->add_rate(array(
-                'id'        => $this->id . $this->instance_id,
-                'label'     => $this->title,
-                'cost'      => $errandlr_cost,
-                'meta_data' => $errandlr_shipping_info,
-            ));
-            return;
+
+            //check if $errandlr_shipping_info is not empty
+            if (!empty($errandlr_shipping_info)) {
+                //add rate
+                $this->add_rate(array(
+                    'id'        => $this->id . $this->instance_id,
+                    'label'     => $this->title,
+                    'cost'      => $errandlr_cost,
+                    'meta_data' => [
+                        'routes' => $errandlr_shipping_info['routes'],
+                        'geoId' => $errandlr_shipping_info['geoId'],
+                        'dropoffLocationsID' => $errandlr_shipping_info['dropoffLocationsID'],
+                        'premium' => $errandlr_shipping_info['premium'],
+                        'currency' => $errandlr_shipping_info['currency'],
+                        'economy_cost' => $errandlr_shipping_info['economy_cost'],
+                        'premium_cost' => $errandlr_shipping_info['premium_cost'],
+                    ],
+                ));
+                return;
+            }
         }
 
         //add rate

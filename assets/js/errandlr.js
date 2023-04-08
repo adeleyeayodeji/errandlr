@@ -47,18 +47,34 @@ jQuery(document).ready(function ($) {
             );
             //economy_cost
             let economy_cost = shipment_info.economy_cost;
+            //format economy_cost
+            economy_cost = new Intl.NumberFormat("en-US", {
+              style: "currency",
+              currency: shipment_info.currency,
+              currencyDisplay: "narrowSymbol",
+              //remove decimal
+              minimumFractionDigits: 0
+            }).format(economy_cost);
             //premium_cost
             let premium_cost = shipment_info.premium_cost;
+            //format premium_cost
+            premium_cost = new Intl.NumberFormat("en-US", {
+              style: "currency",
+              currency: shipment_info.currency,
+              currencyDisplay: "narrowSymbol",
+              //remove decimal
+              minimumFractionDigits: 0
+            }).format(premium_cost);
             //currency
             let currency = shipment_info.currency;
             //content
             let content = `
               <div class="errandlr_container_div">
                   <p class="errandlr_premium_delivery" onclick="errandlrUpdatePrice(this, event)" data-premium="true">
-                      Premium delivery 2-4 hrs ${currency} ${premium_cost}
+                      Premium delivery 2-4 hrs ${premium_cost}
                   </p>
                   <p class="errandlr_economy_delivery" onclick="errandlrUpdatePrice(this, event)" data-premium="false">
-                      Economy delivery 1-5 days ${currency} ${economy_cost}
+                      Economy delivery 1-5 days ${economy_cost}
                   </p>
               </div>
             `;
@@ -86,6 +102,16 @@ jQuery(document).ready(function ($) {
 
   //update content storage
   let updateContentStorage = function () {
+    //get current url
+    let current_url = window.location.href;
+    //check if current url match cart
+    if (current_url.match(/cart/g)) {
+      //clear session storage
+      sessionStorage.removeItem("errandlr_shipment_info");
+      //clear local storage
+      localStorage.removeItem("errandlr_div_cost");
+      return;
+    }
     //get errandlr
     let image = $(".Errandlr-delivery-logo");
     //get parent
