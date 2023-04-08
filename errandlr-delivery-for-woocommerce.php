@@ -300,3 +300,12 @@ class WC_Errandlr_Delivery_Loader
 
 // fire it up!
 WC_Errandlr_Delivery_Loader::instance();
+
+//check if function_exists WC_Errandlr_Delivery sanitize_array
+if (!function_exists('WC_Errandlr_Delivery_sanitize_array')) {
+    function errandlr_sanitize_array($array)
+    {
+        $new = new WC_Errandlr_Delivery;
+        return $new->sanitize_array($array);
+    }
+}

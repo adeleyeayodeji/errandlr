@@ -163,13 +163,85 @@ class WC_Errandlr_Delivery_Shipping_Method extends WC_Shipping_Method
      */
     public function calculate_shipping($package = array())
     {
+        if ($this->get_option('enabled') == 'no') {
+            return;
+        }
+
+        // // country required for all shipments
+        if ($package['destination']['country'] !== 'NG') {
+            //add notice
+            wc_add_notice(__('Errandlr delivery is only available for Nigeria'), 'notice');
+            return;
+        }
+
+        //check if session is started
+        if (session_status() == PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        //if session is set
+        if (isset($_SESSION['errandlr_shipping_info'])) {
+            //get session
+            $errandlr_shipping_info = $_SESSION['errandlr_shipping_info'];
+            file_put_contents(__DIR__ . '/loggin.txt', print_r($errandlr_shipping_info, true));
+        } else {
+            $errandlr_shipping_info = [];
+        }
+
+        //if session is set
+        if (isset($_SESSION['errandlr_shipping_cost'])) {
+            //get session
+            $errandlr_cost = $_SESSION['errandlr_shipping_cost'];
+        } else {
+            $errandlr_cost = 0;
+        }
+
+        $delivery_country_code = $package['destination']['country'];
+        $delivery_state_code = $package['destination']['state'];
+        $delivery_city = $package['destination']['city'];
+        $delivery_base_address = $package['destination']['address'];
+
+        $delivery_state = WC()->countries->get_states($delivery_country_code)[$delivery_state_code];
+        $delivery_country = WC()->countries->get_countries()[$delivery_country_code];
+
+        //full address 
+        $delivery_address = $package['destination']['address'] . ', ' . $package['destination']['city'] . ', ' . $delivery_state . ', ' . $delivery_country;
+
+        if ('Lagos' !== $delivery_state) {
+            wc_add_notice('Errandlr Delivery only available within Lagos', 'notice');
+            return;
+        }
+
+        //check if $errandlr_cost is available
+        if (!empty($errandlr_cost)) {
+            //check if $errandlr_cost is a string 
+            if (is_string($errandlr_cost)) {
+                //convert to float
+                $errandlr_cost = intval($errandlr_cost);
+            }
+
+            //title
+            if ($errandlr_shipping_info['premium'] == "true") {
+                $this->title = 'Premium Errandlr Delivery';
+            } else {
+                $this->title = 'Economy Errandlr Delivery';
+            }
+            //add rate
+            $this->add_rate(array(
+                'id'        => $this->id . $this->instance_id,
+                'label'     => $this->title,
+                'cost'      => $errandlr_cost,
+                'meta_data' => $errandlr_shipping_info,
+            ));
+            return;
+        }
 
         //add rate
         $this->add_rate(array(
             'id'        => $this->id . $this->instance_id,
             'label'     => $this->title,
-            // 'cost'      => $cost,
-            // 'meta_data' => $metadata,
+            'cost'      => 0,
+            'meta_data' => [],
         ));
     }
 }

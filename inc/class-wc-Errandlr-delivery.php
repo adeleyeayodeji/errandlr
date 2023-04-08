@@ -115,6 +115,20 @@ class WC_Errandlr_Delivery
         //ajax errandlr_validate_checkout
         add_action('wp_ajax_errandlr_validate_checkout', array($this, 'errandlr_validate_checkout'));
         add_action('wp_ajax_nopriv_errandlr_validate_checkout', array($this, 'errandlr_validate_checkout'));
+        //ajax errandlr_africa_save_shipping_info
+        add_action('wp_ajax_errandlr_africa_save_shipping_info', array($this, 'errandlr_africa_save_shipping_info'));
+        add_action('wp_ajax_nopriv_errandlr_africa_save_shipping_info', array($this, 'errandlr_africa_save_shipping_info'));
+        //checkout_update_refresh_shipping_methods
+        add_action('woocommerce_checkout_update_order_review', array($this, 'checkout_update_refresh_shipping_methods'), PHP_INT_MAX, 1);
+    }
+
+    public function checkout_update_refresh_shipping_methods($post_data)
+    {
+        //update shipping pricing realtime
+        $packages = WC()->cart->get_shipping_packages();
+        foreach ($packages as $package_key => $package) {
+            WC()->session->set('shipping_for_package_' . $package_key, false); // Or true
+        }
     }
 
     //enqueue_scripts
@@ -144,12 +158,109 @@ class WC_Errandlr_Delivery
 
         //calculate_shipment
         $calculate_shipment = $this->calculate_shipment($form_data);
+        if ($calculate_shipment === false) {
+            wp_send_json([
+                'code' => 400,
+                'message' => 'Unable to calculate errandlr shipment'
+            ]);
+        }
 
         wp_send_json([
             'code' => 200,
             'message' => 'Shipment calculated successfully',
             'shipment_info' => $calculate_shipment
         ]);
+    }
+
+    //errandlr_africa_save_shipping_info
+    public function errandlr_africa_save_shipping_info()
+    {
+        //verify nonce
+        if (!wp_verify_nonce($_POST['nonce'], 'errandlr_delivery_nonce')) {
+            wp_send_json_error(array('message' => 'Invalid nonce'));
+        }
+
+        //premium
+        $premium = sanitize_text_field($_POST['premium']);
+        $shipping_info = $this->sanitize_array($_POST['shipping_info']);
+        //apply shipping 
+        $apply_shipping = $this->apply_shipping($shipping_info, $premium);
+        if ($apply_shipping) {
+            wp_send_json([
+                'code' => 200,
+                'message' => 'Shipping applied successfully'
+            ]);
+        }
+
+        wp_send_json([
+            'code' => 400,
+            'message' => 'Unable to apply shipping'
+        ]);
+    }
+
+    //sanitize_array
+    public function sanitize_array($array)
+    {
+        //check if array is not empty
+        if (!empty($array)) {
+            //loop through array
+            foreach ($array as $key => $value) {
+                //check if value is array
+                if (is_array($array)) {
+                    //sanitize array
+                    $array[$key] = is_array($value) ? $this->sanitize_array($value) : $this->sanitizeDynamic($value);
+                } else {
+                    //check if $array is object
+                    if (is_object($array)) {
+                        //sanitize object
+                        $array->$key = $this->sanitizeDynamic($value);
+                    } else {
+                        //sanitize mixed
+                        $array[$key] = $this->sanitizeDynamic($value);
+                    }
+                }
+            }
+        }
+        //return array
+        return $array;
+    }
+
+    //sanitize_object
+    public function sanitize_object($object)
+    {
+        //check if object is not empty
+        if (!empty($object)) {
+            //loop through object
+            foreach ($object as $key => $value) {
+                //check if value is array
+                if (is_array($value)) {
+                    //sanitize array
+                    $object->$key = $this->sanitize_array($value);
+                } else {
+                    //sanitize mixed
+                    $object->$key = $this->sanitizeDynamic($value);
+                }
+            }
+        }
+        //return object
+        return $object;
+    }
+
+    //dynamic sanitize
+    public function sanitizeDynamic($data)
+    {
+        $type = gettype($data);
+        switch ($type) {
+            case 'array':
+                return $this->sanitize_array($data);
+                break;
+            case 'object':
+                return $this->sanitize_object($data);
+                break;
+            default:
+                return sanitize_text_field($data);
+                break;
+        }
     }
 
     //calculate shipment
@@ -173,6 +284,12 @@ class WC_Errandlr_Delivery
 
         $delivery_state = WC()->countries->get_states($delivery_country_code)[$delivery_state_code];
         $delivery_country = WC()->countries->get_countries()[$delivery_country_code];
+
+        //if $form_data['billing_address_1'] is empty return false
+        if (empty($form_data['billing_address_1'])) {
+            wc_add_notice('Please enter a valid address', 'notice');
+            return false;
+        }
 
         //full address 
         $delivery_address = $form_data['billing_address_1'] . ', ' . $form_data['billing_city'] . ', ' . $delivery_state . ', ' . $delivery_country;
@@ -224,28 +341,62 @@ class WC_Errandlr_Delivery
         );
         //return
         return $metadata;
-        //convert to int if string
-        // if (is_string($discount_amount)) {
-        //     $discount_amount = (int) $discount_amount;
-        // }
-        // //check if discount amount is set
-        // if ($discount_amount > 0) {
-        //     //check if discount amount is greater than cost
-        //     if ($discount_amount > $cost) {
-        //         $cost = 0;
-        //     } else {
-        //         $cost = $cost - $discount_amount;
-        //     }
-        // }
-        // //convert to int if string
-        // if (is_string($fixed_amount)) {
-        //     $fixed_amount = (int) $fixed_amount;
-        // }
+    }
 
-        // //check if fixed amount is set
-        // if ($fixed_amount > 0) {
-        //     $cost = $fixed_amount;
-        // }
+    //apply_shipping
+    public function apply_shipping($shipping_info, $premium)
+    {
+        $errandshipment = new WC_Errandlr_Delivery_Shipping_Method;
+        $discount_amount = $errandshipment->get_option('discount_amount');
+        $fixed_amount = $errandshipment->get_option('fixed_amount');
+        //check if $premium is 'true'
+        if ($premium == 'true') {
+            $cost = $shipping_info['premium_cost'];
+        } else {
+            $cost = $shipping_info['economy_cost'];
+        }
+        $shipping_info['premium'] = $premium;
+        //update shipping info
+        $updateShippingInfo = $shipping_info;
+        //convert to int if string
+        if (is_string($discount_amount)) {
+            $discount_amount = (int) $discount_amount;
+        }
+        //check if discount amount is set
+        if ($discount_amount > 0) {
+            //check if discount amount is greater than cost
+            if ($discount_amount > $cost) {
+                $cost = 0;
+            } else {
+                $cost = $cost - $discount_amount;
+            }
+        }
+        //convert to int if string
+        if (is_string($fixed_amount)) {
+            $fixed_amount = (int) $fixed_amount;
+        }
+
+        //check if fixed amount is set
+        if ($fixed_amount > 0) {
+            $cost = $fixed_amount;
+        }
+
+        //check if cost is less than 0
+        if ($cost < 0) {
+            $cost = 0;
+        }
+
+        //check if session is started
+        if (session_status() == PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        //set session
+        $_SESSION['errandlr_shipping_info'] = $updateShippingInfo;
+        //set session cost
+        $_SESSION['errandlr_shipping_cost'] = $cost;
+
+        return true;
     }
 
     /**
