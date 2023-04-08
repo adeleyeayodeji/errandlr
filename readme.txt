@@ -3,8 +3,8 @@ Contributors: errandlr, biggidroid
 Donate link: https://errandlr.com/
 Tags: e-commerce, store, sales, sell, woo, shop, cart, checkout, downloadable, downloads, devlivery, courier, storefront, last-mile, errand, errandlr
 Requires at least: 3.0.0
-Tested up to: 6.0
-Stable tag: 1.0.5
+Tested up to: 6.2
+Stable tag: 1.0.6
 Requires PHP: 5.4 or higher
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -28,6 +28,9 @@ So is delivering for you.
 www.errandlr.com
 
 == Changelog ==
+
+= 1.0.6 =
+* Added new update
 
 = 1.0.4 =
 * Updated Readme
